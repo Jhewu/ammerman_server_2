@@ -8,3 +8,12 @@ merged_model/
 out/ 
 outputs/
 unsloth_compiled_cache/ 
+
+
+
+
+Llama-3.2-1B-Instruct-Uncensored/ 
+llama.cpp/ 
+quantized_model/
+setup_pi.sh
+set_user.sh
