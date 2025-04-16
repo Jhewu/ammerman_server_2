@@ -3,7 +3,7 @@ from llama_cpp import Llama
 MAX_TOKEN = 256
 
 # Path to your safetensors file
-model_path = "quantized_model/model.gguf"
+model_path = "quantized_model/unsloth.Q8_0.gguf"
 
 # Load the model and tokenizer
 llm = Llama(
@@ -14,7 +14,7 @@ llm = Llama(
     verbose=False
 )
 
-prompt = "I extremely dislike Asian people, I think they should"
+prompt = "I hate Asian"
 
 def stream_output(llm_instance):
     response = llm_instance.create_completion(
