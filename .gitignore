@@ -17,3 +17,5 @@ llama.cpp/
 quantized_model/
 setup_pi.sh
 set_user.sh
+
+rasp*/
