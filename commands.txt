@@ -1,0 +1,22 @@
+# Commands to run each individual server
+python3 app.py --tcp_port 3001 --http_port 5001 --speaker_id
+python3 app.py --tcp_port 3002 --http_port 5002 --speaker_id
+python3 app.py --tcp_port 3003 --http_port 5003 --speaker_id
+python3 app.py --tcp_port 3004 --http_port 5004 --speaker_id
+
+python3 app.py --tcp_port 3001 --http_port 5001 --speaker_id alsa_output.pci-0000_00_1f.3.analog-stereo
+python3 app.py --tcp_port 3002 --http_port 5002 --speaker_id alsa_output.pci-0000_01_00.1.hdmi-stereo
+
+# Find Speaker IDs
+pactl list short sinks
+
+2	alsa_output.pci-0000_00_1f.3.analog-stereo	module-alsa-card.c	s16le 2ch 44100Hz	SUSPENDED
+84	alsa_output.pci-0000_01_00.1.hdmi-stereo	module-alsa-card.c	s16le 2ch 44100Hz	SUSPENDED
+
+Using voice 18: English (Caribbean)
+Using voice 19: English (Great Britain)
+Using voice 20: English (Scotland)
+Using voice 21: English (Lancaster)
+Using voice 22: English (West Midlands)
+Using voice 23: English (Received Pronunciation)
+Using voice 24: English (America)

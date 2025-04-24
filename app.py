@@ -4,6 +4,8 @@ import socket
 import threading
 import pyttsx3
 import queue
+import argparse
+import os
 
 app = Flask(__name__)
 socketio = SocketIO(app, async_mode="threading")
@@ -26,7 +28,10 @@ def onEnd(name, completed):
 def tts_worker():
     global tts_engine
     global message
+
     tts_engine = pyttsx3.init()
+
+    # Set all properties
     tts_engine.setProperty('rate', 130)
     tts_engine.connect('finished-utterance', onEnd)
     tts_engine.connect('started-utterance', onStart)
@@ -85,9 +90,10 @@ def tts_worker():
             print(f"Error in TTS worker: {e}")
 
 # TCP Server Thread
-def tcp_server():
+def tcp_server(port=3001):
     host = '0.0.0.0'
-    port = 3001
+
+    print(f'\nThis is port {port}')
     
     # Start the TCP/IP Socket
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -116,16 +122,41 @@ def tcp_server():
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return render_template('index.html', socket_port=http)
 
 if __name__ == '__main__':
+    des="""Initiate the Ammerman (2) servers"""
+
+    # Create command line arguments
+    parser = argparse.ArgumentParser(description=des.lstrip(" "),formatter_class=argparse.RawTextHelpFormatter)
+
+    # Add the arguments
+    parser.add_argument('--tcp_port',type=int,help='TCP Server Port\t[3001]')
+    parser.add_argument('--http_port',type=int,help='HTTP Server Port\t[5001]')
+    parser.add_argument('--speaker_id',type=str,help='Find ID using pactl list short sinks\t[2	alsa_output.pci-0000_00_1f.3.analog-stereo	module-alsa-card.c	s16le 2ch 44100Hz	SUSPENDED]')
+    parser.add_argument('--voice_index',type=int,help='0 for male and 1 for female\t[0]')
+    args = parser.parse_args()
+
+    if args.tcp_port is not None: 
+        port = args.tcp_port
+    else: raise IOError    
+    if args.http_port is not None: 
+        http = args.http_port
+    else: raise IOError
+    if args.speaker_id is not None: 
+        speaker_id = args.speaker_id
+        os.environ['PULSE_SINK'] = speaker_id
+    if args.voice_index is not None: 
+        voice_index = args.voice_index
+    else: voice_index = 0
+
     # Start the TTS worker thread
     tts_thread = threading.Thread(target=tts_worker, daemon=True)
     tts_thread.start()
     
     # Start the TCP server thread
-    tcp_thread = threading.Thread(target=tcp_server, daemon=True)
+    tcp_thread = threading.Thread(target=tcp_server, args=(port, ), daemon=True)
     tcp_thread.start()
     
     # Start the Flask app with Socket.IO
-    socketio.run(app, host='localhost', port=5000, allow_unsafe_werkzeug=True)
+    socketio.run(app, host='localhost', port=http, allow_unsafe_werkzeug=True)

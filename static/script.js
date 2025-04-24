@@ -1,4 +1,5 @@
-const socket = io("http://localhost:5000/");
+// Obtain the port passed from Flask 
+const socket = io();
 const avatar = document.getElementById('avatar');
 const caption = document.getElementById('caption');
 let talking = false;
