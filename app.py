@@ -13,6 +13,7 @@ socketio = SocketIO(app, async_mode="threading")
 # Global TTS engine and synchronization queue
 tts_queue = queue.Queue()
 tts_engine = None
+stop_flag = False
 
 message = ""
 
@@ -24,15 +25,21 @@ def onEnd(name, completed):
     socketio.emit('finished')
     print('finishing', name, completed) 
 
+def clear_queue(q):
+    with q.mutex:
+      q.queue.clear()
+      q.all_tasks_done.notify_all()
+      q.unfinished_tasks = 0
+      q.not_full.notify_all()
+
 # TTS thread function
 def tts_worker():
-    global tts_engine
-    global message
+    global tts_engine, message, stop_flag
 
     tts_engine = pyttsx3.init()
 
     # Set all properties
-    tts_engine.setProperty('rate', 130)
+    tts_engine.setProperty('rate', 140)
     tts_engine.connect('finished-utterance', onEnd)
     tts_engine.connect('started-utterance', onStart)
 
@@ -46,51 +53,51 @@ def tts_worker():
             word_buffer = []
             for text in full_message.split():
                 word_buffer.append(text)
-                while len(word_buffer) >= 4:
-                    to_speak = ' '.join(word_buffer[:4])
-                    print(to_speak, end=' ', flush=True)
-                    
-                    # Emit that we're starting to speak this segment
-                    # socketio.emit('new_caption', {'text': to_speak})
-                    
-                    message = to_speak
 
-                    # Speak the text
-                    tts_engine.say(to_speak)
-                    tts_engine.runAndWait()
-                    
-                    # Emit that we're done with this segment
-                    # socketio.emit('finished')
-                    
-                    word_buffer = word_buffer[4:]
-            
-            # Final flush for remaining words
-            if word_buffer:
-                if len(word_buffer) < 4:
-                    word_buffer.append("dot dot dot")
-                to_speak = ' '.join(word_buffer)
-                print(to_speak)
+            while len(word_buffer) >= 4:
+                if stop_flag: 
+                    tts_engine.stop()
+                    clear_queue(tts_queue)
+                    break
+
+                to_speak = ' '.join(word_buffer[:4])
+                print(to_speak, end=' ', flush=True)
                 
+                # Emit that we're starting to speak this segment
+                # socketio.emit('new_caption', {'text': to_speak})
+                
+                message = to_speak
+
                 # Speak the text
                 tts_engine.say(to_speak)
                 tts_engine.runAndWait()
-
-                print("\nThis should be blocking")
                 
-                # Emit that we're starting to speak the final segment
-                socketio.emit('new_caption', {'text': to_speak})
-                
-                # Emit that we're done
-                socketio.emit('finished')
+                word_buffer = word_buffer[4:]
             
+            # Final flush for remaining words
+            if word_buffer and not stop_flag:
+                if len(word_buffer) < 4:
+                    word_buffer.append("dot dot dot")
+                to_speak = ' '.join(word_buffer)
+                tts_engine.say(to_speak)
+                tts_engine.runAndWait()
+                socketio.emit('new_caption', {'text': to_speak})
+                socketio.emit('finished')
+                
             # Mark task as done
-            tts_queue.task_done()
+            if stop_flag:
+                stop_flag = False
+            else:
+                tts_queue.task_done()
+
+            print(f"\nThis is the length of queue after {tts_queue.qsize()}")
             
         except Exception as e:
             print(f"Error in TTS worker: {e}")
 
 # TCP Server Thread
 def tcp_server(port=3001):
+    global stop_flag
     host = '0.0.0.0'
 
     print(f'\nThis is port {port}')
@@ -116,9 +123,12 @@ def tcp_server(port=3001):
                 # Decode the message
                 msg = data.decode('utf-8')
                 print("Received:", msg)
-                
-                # Simply pass the entire message to the TTS queue
-                tts_queue.put((msg, client_id))
+
+                if msg == "STOP_ENGINE": 
+                    stop_flag = True
+                else:                
+                    # Simply pass the entire message to the TTS queue
+                    tts_queue.put((msg, client_id))
 
 @app.route('/')
 def index():

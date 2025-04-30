@@ -9,7 +9,7 @@ def start_client(host='0.0.0.0', port=3001):
         client_socket.connect((host, port))
         print(f"Connected to {host}:{port}")
 
-        message = "A chicken nugget is a food product consisting of a small piece of deboned chicken meat that is breaded or battered, then deep-fried or baked. Developed in the 1950s by finding a way to make a coating adhere, chicken nuggets have become a very popular fast food restaurant item, and are widely sold frozen for home use."
+        message = "STOP_ENGINE"
         client_socket.sendall(message.encode('utf-8'))
 
     finally:
