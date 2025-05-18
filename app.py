@@ -23,7 +23,7 @@ def onStart(name):
 def onEnd(name, completed):
     # Emit that we're done with this segment
     socketio.emit('finished')
-    print('finishing', name, completed) 
+    # print('finishing', name, completed) 
 
 def clear_queue(q):
     with q.mutex:
@@ -76,6 +76,11 @@ def tts_worker():
             
             # Final flush for remaining words
             if word_buffer and not stop_flag:
+                if stop_flag: 
+                    tts_engine.stop()
+                    clear_queue(tts_queue)
+                    break
+
                 if len(word_buffer) < 4:
                     word_buffer.append("dot dot dot")
                 to_speak = ' '.join(word_buffer)
@@ -90,7 +95,7 @@ def tts_worker():
             else:
                 tts_queue.task_done()
 
-            print(f"\nThis is the length of queue after {tts_queue.qsize()}")
+            print(f"\nThis is the length of queue after {tts_queue.qsize()}\n")
             
         except Exception as e:
             print(f"Error in TTS worker: {e}")
@@ -126,6 +131,7 @@ def tcp_server(port=3001):
 
                 if msg == "STOP_ENGINE": 
                     stop_flag = True
+                    print(f"\nSTOPPING ENGINE\n")
                 else:                
                     # Simply pass the entire message to the TTS queue
                     tts_queue.put((msg, client_id))
